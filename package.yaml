@@ -1,0 +1,55 @@
+name:                hs-ipfs-api
+version:             0.1.0.0
+github:              "jkaye2012/hs-ipfs-api"
+license:             MIT
+author:              "Jordan Kaye"
+maintainer:          "jk@dispersion.tech"
+copyright:           "2018 Jordan Kaye"
+
+extra-source-files:
+  - README.md
+  - ChangeLog.md
+
+# Metadata used when publishing your package
+synopsis: Bindings to the IPFS HTTP API
+category: Distributed Computing, Web
+
+description: Please see the README on GitHub at <https://github.com/jkaye2012/hs-ipfs-api#readme>
+
+dependencies:
+  - base >= 4.7 && < 5
+  - aeson
+  - aeson-casing
+  - aeson-lens
+  - binary
+  - bytestring
+  - bytestring-conversion
+  - exceptions
+  - http-types
+  - lens
+  - wreq
+
+library:
+  source-dirs: src
+
+executables:
+  hs-ipfs-api-exe:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+    dependencies:
+      - hs-ipfs-api
+
+tests:
+  hs-ipfs-api-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+    dependencies:
+      - hs-ipfs-api

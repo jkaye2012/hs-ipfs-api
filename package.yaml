@@ -24,9 +24,11 @@ dependencies:
   - binary
   - bytestring
   - bytestring-conversion
+  - containers
   - exceptions
   - http-types
   - lens
+  - text
   - wreq
 
 library:

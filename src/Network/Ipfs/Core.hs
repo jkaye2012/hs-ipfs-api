@@ -1,7 +1,9 @@
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE StrictData #-}
-
+{-# LANGUAGE TypeFamilies #-}
 
 module Network.Ipfs.Core
   (
@@ -10,10 +12,14 @@ module Network.Ipfs.Core
 import qualified Data.ByteString.Lazy as B
 import qualified Data.Set as S
 import qualified Data.Text as T
+import Data.Aeson (FromJSON(..), genericParseJSON)
+import Data.Aeson.Casing (aesonPrefix, pascalCase)
 import Data.Binary (Binary)
 import Data.Binary.Builder (Builder, fromLazyByteString, append)
 import Data.ByteString.Conversion (toByteString)
+import GHC.Generics (Generic)
 import Network.HTTP.Types
+import Network.Wreq
 
 -- |The version of the IPFS HTTP API that the client should expect to connect to.
 data IpfsApiVersion = V0
@@ -83,29 +89,51 @@ type IpfsQuery = S.Set IpfsQueryItem
 data IpfsHttpInfo = IpfsHttpInfo PathSegments IpfsQuery
   deriving (Show)
 
-class IpfsOperation a where
+class (FromJSON (IpfsResponse a)) => IpfsOperation a where
+  type IpfsResponse a :: *
   toHttpInfo :: a -> IpfsHttpInfo
 
--- Need to encode return value in this as well so that reponses can be properly marshalled.
--- I'm thinking that there must be some way to not have to write the boilerplate that's been
--- included in the implementation below... It's clearly very mechanical, but I haven't quite
--- been able to figure out where the right abstraction is to make things work cleanly.
-data OpSwarmPeers = OpSwarmPeers IpfsQuery
+newtype OpSwarmPeers = OpSwarmPeers { swarmPeersQuery :: IpfsQuery }
   deriving (Show)
 
-updateQuery :: IpfsQuery -> QueryItem -> IpfsQuery
-updateQuery i q = S.insert (IpfsQueryItem q) i
+updateQuery :: QueryItem -> IpfsQuery -> IpfsQuery
+updateQuery q i = S.insert (IpfsQueryItem q) i
+
+opSwarmPeers :: OpSwarmPeers
+opSwarmPeers = OpSwarmPeers S.empty
 
 verbose :: OpSwarmPeers -> OpSwarmPeers
-verbose (OpSwarmPeers q) = OpSwarmPeers $ updateQuery q ("verbose", Nothing) 
+verbose = OpSwarmPeers . updateQuery ("verbose", Nothing) . swarmPeersQuery
 
 withLatency :: OpSwarmPeers -> OpSwarmPeers
-withLatency (OpSwarmPeers q) = OpSwarmPeers $ updateQuery q ("latency", Nothing)
+withLatency = OpSwarmPeers . updateQuery ("latency", Nothing) . swarmPeersQuery
 
 withStreams :: OpSwarmPeers -> OpSwarmPeers
-withStreams (OpSwarmPeers q) = OpSwarmPeers $ updateQuery q ("streams", Nothing)
+withStreams = OpSwarmPeers . updateQuery ("streams", Nothing) . swarmPeersQuery
+
+data SwarmPeer = SwarmPeer
+  {
+    swarmpeerAddr :: String
+  } deriving (Show, Generic)
+
+instance FromJSON SwarmPeer where
+  parseJSON = genericParseJSON $ aesonPrefix pascalCase
+
+data SwarmPeers = SwarmPeers
+  {
+     swarmPeers :: [SwarmPeer]
+  } deriving (Show, Generic)
+
+instance FromJSON SwarmPeers where
+  parseJSON = genericParseJSON $ aesonPrefix pascalCase
 
 instance IpfsOperation OpSwarmPeers where
-  toHttpInfo (OpSwarmPeers q) = IpfsHttpInfo ["swarm", "peers"] q
+  type IpfsResponse OpSwarmPeers = SwarmPeers
+  toHttpInfo = IpfsHttpInfo ["swarm", "peers"] . swarmPeersQuery
+
+doThing :: (IpfsOperation a) => a -> IO (Response (IpfsResponse a))
+doThing op = do
+  r <- asJSON =<< get "http://127.0.0.1:5001/api/v0/swarm/peers" 
+  return r
 
   

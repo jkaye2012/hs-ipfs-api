@@ -7,6 +7,25 @@
 
 module Network.Ipfs.Core
   (
+    -- * Query types
+    IpfsQueryItem
+  , IpfsQuery
+    -- ** Query utility functions
+  , newQuery
+  , updateQuery
+  , emptyQuery
+    -- * API operation building blocks
+  , IpfsHttpInfo(..)
+  , IpfsOperation(..)
+  , doThing
+  , doOtherThing
+  , defaultConnectionInfo
+    -- * Convenience re-exports
+  , Generic
+  , FromJSON(..)
+  , genericParseJSON
+  , aesonPrefix
+  , pascalCase
   ) where
 
 import qualified Data.ByteString.Lazy as B
@@ -15,7 +34,8 @@ import qualified Data.Text as T
 import Data.Aeson (FromJSON(..), genericParseJSON)
 import Data.Aeson.Casing (aesonPrefix, pascalCase)
 import Data.Binary (Binary)
-import Data.Binary.Builder (Builder, fromLazyByteString, append)
+import Data.Binary.Builder (Builder, fromLazyByteString, append, toLazyByteString)
+import Data.ByteString.Lazy.Char8 (unpack)
 import Data.ByteString.Conversion (toByteString)
 import GHC.Generics (Generic)
 import Network.HTTP.Types
@@ -58,15 +78,7 @@ apiRoot (IpfsConnectionInfo{..}) =
   let port = toByteString ipfsPort
       version = apiVersionUriPart ipfsVersion
   in
-    fromLazyByteString $ B.concat [https, ipfsHost, ":", port, "/api/", version]
-
--- data IpfsOperation = OpSwarmPeers
---                    | OpBootstrapList
---                    deriving (Show)
-
--- pathSegments :: IpfsOperation -> [T.Text]
--- pathSegments OpSwarmPeers = ["swarm", "peers"]
--- pathSegments OpBootstrapList = ["bootstrap", "list"]
+    fromLazyByteString $ B.concat [https, ipfsHost, ":", port, "/api/", version, "/"]
 
 newtype IpfsQueryItem = IpfsQueryItem { getQueryItem :: QueryItem }
   deriving (Show)
@@ -83,57 +95,48 @@ instance Ord IpfsQueryItem where
            in
              ak <= bk
 
-type PathSegments = [T.Text]
+type PathSegments = [B.ByteString]
+
 type IpfsQuery = S.Set IpfsQueryItem
 
 data IpfsHttpInfo = IpfsHttpInfo PathSegments IpfsQuery
   deriving (Show)
 
+renderEndpoints :: PathSegments -> Builder
+renderEndpoints = fromLazyByteString . B.intercalate "/"
+
 class (FromJSON (IpfsResponse a)) => IpfsOperation a where
   type IpfsResponse a :: *
   toHttpInfo :: a -> IpfsHttpInfo
 
-newtype OpSwarmPeers = OpSwarmPeers { swarmPeersQuery :: IpfsQuery }
-  deriving (Show)
+newQuery :: [IpfsQueryItem] -> IpfsQuery
+newQuery = S.fromList 
+
+emptyQuery :: IpfsQuery
+emptyQuery = newQuery []
 
 updateQuery :: QueryItem -> IpfsQuery -> IpfsQuery
 updateQuery q i = S.insert (IpfsQueryItem q) i
 
-opSwarmPeers :: OpSwarmPeers
-opSwarmPeers = OpSwarmPeers S.empty
-
-verbose :: OpSwarmPeers -> OpSwarmPeers
-verbose = OpSwarmPeers . updateQuery ("verbose", Nothing) . swarmPeersQuery
-
-withLatency :: OpSwarmPeers -> OpSwarmPeers
-withLatency = OpSwarmPeers . updateQuery ("latency", Nothing) . swarmPeersQuery
-
-withStreams :: OpSwarmPeers -> OpSwarmPeers
-withStreams = OpSwarmPeers . updateQuery ("streams", Nothing) . swarmPeersQuery
-
-data SwarmPeer = SwarmPeer
-  {
-    swarmpeerAddr :: String
-  } deriving (Show, Generic)
-
-instance FromJSON SwarmPeer where
-  parseJSON = genericParseJSON $ aesonPrefix pascalCase
-
-data SwarmPeers = SwarmPeers
-  {
-     swarmPeers :: [SwarmPeer]
-  } deriving (Show, Generic)
-
-instance FromJSON SwarmPeers where
-  parseJSON = genericParseJSON $ aesonPrefix pascalCase
-
-instance IpfsOperation OpSwarmPeers where
-  type IpfsResponse OpSwarmPeers = SwarmPeers
-  toHttpInfo = IpfsHttpInfo ["swarm", "peers"] . swarmPeersQuery
+renderQuery :: IpfsQuery -> Builder
+renderQuery = renderQueryBuilder True . fmap getQueryItem . S.toList
 
 doThing :: (IpfsOperation a) => a -> IO (Response (IpfsResponse a))
 doThing op = do
-  r <- asJSON =<< get "http://127.0.0.1:5001/api/v0/swarm/peers" 
+  r <- asJSON =<< get "http://127.0.0.1:5001/api/v0/swarm/addrs/listen" 
   return r
 
-  
+doOtherThing :: (IpfsOperation a) => IpfsConnectionInfo -> a -> IO (Response (IpfsResponse a))
+doOtherThing conn op =
+  let (IpfsHttpInfo path query) = toHttpInfo op
+      root = apiRoot conn
+      endp = renderEndpoints path 
+      qp = Network.Ipfs.Core.renderQuery query
+      url = unpack $ toLazyByteString (root `append` endp `append` qp)
+  in
+    do
+      putStrLn url
+      r <- asJSON =<< get url 
+      return r
+
+

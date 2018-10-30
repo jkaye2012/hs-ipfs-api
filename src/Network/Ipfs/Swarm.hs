@@ -17,7 +17,14 @@ module Network.Ipfs.Swarm
   , withLatency
   , withStreams
     -- * Swarm addresses
+  , SwarmAddrs
+    -- ** Listening addresses
+  , OpSwarmListenAddrs
   , opSwarmListenAddrs
+    -- ** Local addresses
+  , OpSwarmLocalAddrs
+  , opSwarmLocalAddrs
+  , withIds
   ) where
 
 import Network.Ipfs.Core
@@ -66,14 +73,27 @@ data OpSwarmListenAddrs = OpSwarmListenAddrs ()
 opSwarmListenAddrs :: OpSwarmListenAddrs
 opSwarmListenAddrs = OpSwarmListenAddrs ()
 
-data SwarmListenAddrs = SwarmListenAddrs
+data SwarmAddrs = SwarmAddrs
   {
-    listenStrings :: [String]
+    addrStrings :: [String]
   } deriving (Show, Generic)
 
-instance FromJSON SwarmListenAddrs where
+instance FromJSON SwarmAddrs where
   parseJSON = genericParseJSON $ aesonPrefix pascalCase
 
 instance IpfsOperation OpSwarmListenAddrs where
-  type IpfsResponse OpSwarmListenAddrs = SwarmListenAddrs
+  type IpfsResponse OpSwarmListenAddrs = SwarmAddrs
   toHttpInfo _ = IpfsHttpInfo ["swarm", "addrs", "listen"] emptyQuery
+
+newtype OpSwarmLocalAddrs = OpSwarmLocalAddrs { swarmLocalAddrsQuery :: IpfsQuery }
+  deriving (Show)
+
+opSwarmLocalAddrs :: OpSwarmLocalAddrs
+opSwarmLocalAddrs = OpSwarmLocalAddrs emptyQuery
+
+withIds :: OpSwarmLocalAddrs -> OpSwarmLocalAddrs
+withIds = OpSwarmLocalAddrs . updateQuery ("id", Nothing) . swarmLocalAddrsQuery
+
+instance IpfsOperation OpSwarmLocalAddrs where
+  type IpfsResponse OpSwarmLocalAddrs = SwarmAddrs
+  toHttpInfo = IpfsHttpInfo ["swarm", "addrs", "local"] . swarmLocalAddrsQuery

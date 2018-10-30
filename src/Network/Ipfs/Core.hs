@@ -17,8 +17,7 @@ module Network.Ipfs.Core
     -- * API operation building blocks
   , IpfsHttpInfo(..)
   , IpfsOperation(..)
-  , doThing
-  , doOtherThing
+  , performIpfsOperation
   , defaultConnectionInfo
     -- * Convenience re-exports
   , Generic
@@ -66,9 +65,9 @@ defaultConnectionInfo =
                      , ipfsVersion = V0
                      }
 
--- |The https URL prefix.
-https :: B.ByteString
-https = "https://"
+-- |The http URL prefix.
+http :: B.ByteString
+http = "http://"
 
 -- |Constructs the URI root for a given IPFS HTTP connection.
 -- This root is common across all API operations; as such, the root builder is used as
@@ -78,7 +77,7 @@ apiRoot (IpfsConnectionInfo{..}) =
   let port = toByteString ipfsPort
       version = apiVersionUriPart ipfsVersion
   in
-    fromLazyByteString $ B.concat [https, ipfsHost, ":", port, "/api/", version, "/"]
+    fromLazyByteString $ B.concat [http, ipfsHost, ":", port, "/api/", version, "/"]
 
 newtype IpfsQueryItem = IpfsQueryItem { getQueryItem :: QueryItem }
   deriving (Show)
@@ -105,29 +104,32 @@ data IpfsHttpInfo = IpfsHttpInfo PathSegments IpfsQuery
 renderEndpoints :: PathSegments -> Builder
 renderEndpoints = fromLazyByteString . B.intercalate "/"
 
+-- |Models an individual IPFS API operation.
 class (FromJSON (IpfsResponse a)) => IpfsOperation a where
-  type IpfsResponse a :: *
-  toHttpInfo :: a -> IpfsHttpInfo
+  type IpfsResponse a :: * -- ^ The type that the client should expect to receive back from the API.
+  toHttpInfo :: a -> IpfsHttpInfo -- ^ Converts the operation to its outgoing API representation.
 
+-- |Constructs a new query from a list of 'IpfsQueryItem'.
+-- If multiple conflicting items are passed, the first one will be taken.
 newQuery :: [IpfsQueryItem] -> IpfsQuery
 newQuery = S.fromList 
 
+-- |Constructs a new empty query. Useful if all potential components of a query are optional.
 emptyQuery :: IpfsQuery
 emptyQuery = newQuery []
 
+-- |Adds a single item to an existing 'IpfsQuery'
 updateQuery :: QueryItem -> IpfsQuery -> IpfsQuery
 updateQuery q i = S.insert (IpfsQueryItem q) i
 
+-- |Coerces an 'IpfsQuery' to its corresponding 'Builder'.
+-- Tis is only meant to be used after the entirety of a query has been constructed.
 renderQuery :: IpfsQuery -> Builder
 renderQuery = renderQueryBuilder True . fmap getQueryItem . S.toList
 
-doThing :: (IpfsOperation a) => a -> IO (Response (IpfsResponse a))
-doThing op = do
-  r <- asJSON =<< get "http://127.0.0.1:5001/api/v0/swarm/addrs/listen" 
-  return r
-
-doOtherThing :: (IpfsOperation a) => IpfsConnectionInfo -> a -> IO (Response (IpfsResponse a))
-doOtherThing conn op =
+-- |Performs a single IPFS API operation.
+performIpfsOperation :: (IpfsOperation a) => IpfsConnectionInfo -> a -> IO (Response (IpfsResponse a))
+performIpfsOperation conn op =
   let (IpfsHttpInfo path query) = toHttpInfo op
       root = apiRoot conn
       endp = renderEndpoints path 
@@ -135,7 +137,6 @@ doOtherThing conn op =
       url = unpack $ toLazyByteString (root `append` endp `append` qp)
   in
     do
-      putStrLn url
       r <- asJSON =<< get url 
       return r
 

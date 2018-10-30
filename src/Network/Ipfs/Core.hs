@@ -8,7 +8,7 @@
 module Network.Ipfs.Core
   (
     -- * Query types
-    IpfsQueryItem
+    IpfsQueryItem(..)
   , IpfsQuery
     -- ** Query utility functions
   , newQuery

@@ -8,7 +8,6 @@
 -- |Information about the current IPFS swarm.
 module Network.Ipfs.Swarm
   (
-    -- * Swarm peer list
     SwarmPeers
   , SwarmPeer
   , OpSwarmPeers
@@ -18,16 +17,18 @@ module Network.Ipfs.Swarm
   , withStreams
     -- * Swarm addresses
   , SwarmAddrs
-    -- ** Listening addresses
   , OpSwarmListenAddrs
   , opSwarmListenAddrs
-    -- ** Local addresses
   , OpSwarmLocalAddrs
   , opSwarmLocalAddrs
   , withIds
   ) where
 
+import qualified Data.ByteString as B
+
 import Network.Ipfs.Core
+
+-- ** Peers
 
 newtype OpSwarmPeers = OpSwarmPeers { swarmPeersQuery :: IpfsQuery }
   deriving (Show)
@@ -67,12 +68,6 @@ instance IpfsOperation OpSwarmPeers where
   type IpfsResponse OpSwarmPeers = SwarmPeers
   toHttpInfo = IpfsHttpInfo ["swarm", "peers"] . swarmPeersQuery
 
-data OpSwarmListenAddrs = OpSwarmListenAddrs ()
-  deriving (Show)
-
-opSwarmListenAddrs :: OpSwarmListenAddrs
-opSwarmListenAddrs = OpSwarmListenAddrs ()
-
 data SwarmAddrs = SwarmAddrs
   {
     addrStrings :: [String]
@@ -81,9 +76,19 @@ data SwarmAddrs = SwarmAddrs
 instance FromJSON SwarmAddrs where
   parseJSON = genericParseJSON $ aesonPrefix pascalCase
 
+-- ** Listening addresses
+
+data OpSwarmListenAddrs = OpSwarmListenAddrs ()
+  deriving (Show)
+
+opSwarmListenAddrs :: OpSwarmListenAddrs
+opSwarmListenAddrs = OpSwarmListenAddrs ()
+
 instance IpfsOperation OpSwarmListenAddrs where
   type IpfsResponse OpSwarmListenAddrs = SwarmAddrs
   toHttpInfo _ = IpfsHttpInfo ["swarm", "addrs", "listen"] emptyQuery
+
+-- ** Local addresses
 
 newtype OpSwarmLocalAddrs = OpSwarmLocalAddrs { swarmLocalAddrsQuery :: IpfsQuery }
   deriving (Show)
@@ -97,3 +102,15 @@ withIds = OpSwarmLocalAddrs . updateQuery ("id", Nothing) . swarmLocalAddrsQuery
 instance IpfsOperation OpSwarmLocalAddrs where
   type IpfsResponse OpSwarmLocalAddrs = SwarmAddrs
   toHttpInfo = IpfsHttpInfo ["swarm", "addrs", "local"] . swarmLocalAddrsQuery
+
+-- ** Create a swarm connection
+
+-- |Create a new swarm connection to the specified address.
+data OpSwarmConnect = OpSwarmConnect B.ByteString
+  deriving (Show)
+
+instance IpfsOperation OpSwarmConnect where
+  type IpfsResponse OpSwarmConnect = SwarmAddrs
+  toHttpInfo (OpSwarmConnect addr) =
+    let query = newQuery [IpfsQueryItem ("arg", Just addr)] 
+    in IpfsHttpInfo ["swarm", "connect"] query

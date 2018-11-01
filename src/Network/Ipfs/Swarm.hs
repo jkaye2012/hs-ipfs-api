@@ -34,7 +34,7 @@ newtype OpSwarmPeers = OpSwarmPeers { swarmPeersQuery :: IpfsQuery }
   deriving (Show)
 
 -- |Creates a new swarm peer list operation.
--- Meant to be used with the 'verbose', 'withLatency', and 'withStreams' functions.
+-- Can be used with the 'verbose', 'withLatency', and 'withStreams' functions.
 -- https://docs.ipfs.io/reference/api/http/#api-v0-swarm-peers
 opSwarmPeers :: OpSwarmPeers
 opSwarmPeers = OpSwarmPeers emptyQuery
@@ -78,6 +78,7 @@ instance FromJSON SwarmAddrs where
 
 -- ** Listening addresses
 
+-- |https://docs.ipfs.io/reference/api/http/#api-v0-swarm-addrs-listen
 data OpSwarmListenAddrs = OpSwarmListenAddrs ()
   deriving (Show)
 
@@ -90,6 +91,7 @@ instance IpfsOperation OpSwarmListenAddrs where
 
 -- ** Local addresses
 
+-- |https://docs.ipfs.io/reference/api/http/#api-v0-swarm-addrs-local
 newtype OpSwarmLocalAddrs = OpSwarmLocalAddrs { swarmLocalAddrsQuery :: IpfsQuery }
   deriving (Show)
 
@@ -105,12 +107,48 @@ instance IpfsOperation OpSwarmLocalAddrs where
 
 -- ** Create a swarm connection
 
--- |Create a new swarm connection to the specified address.
+-- |https://docs.ipfs.io/reference/api/http/#api-v0-swarm-connect 
 data OpSwarmConnect = OpSwarmConnect B.ByteString
   deriving (Show)
 
 instance IpfsOperation OpSwarmConnect where
   type IpfsResponse OpSwarmConnect = SwarmAddrs
   toHttpInfo (OpSwarmConnect addr) =
+    let query = newQuery [IpfsQueryItem ("arg", Just addr)] 
+    in IpfsHttpInfo ["swarm", "connect"] query
+
+-- ** Disconnect a previously created swarm connection
+
+-- |https://docs.ipfs.io/reference/api/http/#api-v0-swarm-disconnect
+data OpSwarmDisconnect = OpSwarmDisconnect B.ByteString
+  deriving (Show)
+
+instance IpfsOperation OpSwarmDisconnect where
+  type IpfsResponse OpSwarmDisconnect = SwarmAddrs
+  toHttpInfo (OpSwarmDisconnect addr) =
+    let query = newQuery [IpfsQueryItem ("arg", Just addr)] 
+    in IpfsHttpInfo ["swarm", "connect"] query
+
+-- ** Add a swarm filter
+
+-- |https://docs.ipfs.io/reference/api/http/#api-v0-swarm-filters-add
+data OpSwarmAddFilter = OpSwarmAddFilter B.ByteString
+  deriving (Show)
+
+instance IpfsOperation OpSwarmAddFilter where
+  type IpfsResponse OpSwarmAddFilter = SwarmAddrs
+  toHttpInfo (OpSwarmAddFilter addr) =
+    let query = newQuery [IpfsQueryItem ("arg", Just addr)] 
+    in IpfsHttpInfo ["swarm", "connect"] query
+
+-- ** Remove a swarm filter
+
+-- |https://docs.ipfs.io/reference/api/http/#api-v0-swarm-filters-rm
+data OpSwarmRemoveFilter = OpSwarmRemoveFilter B.ByteString
+  deriving (Show)
+
+instance IpfsOperation OpSwarmRemoveFilter where
+  type IpfsResponse OpSwarmRemoveFilter = SwarmAddrs
+  toHttpInfo (OpSwarmRemoveFilter addr) =
     let query = newQuery [IpfsQueryItem ("arg", Just addr)] 
     in IpfsHttpInfo ["swarm", "connect"] query

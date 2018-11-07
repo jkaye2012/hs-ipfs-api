@@ -15,6 +15,7 @@ module Network.Ipfs.Core
   , updateQuery
   , emptyQuery
     -- * API operation building blocks
+  , HttpMethod(..)
   , IpfsHttpInfo(..)
   , IpfsOperation(..)
   , performIpfsOperation
@@ -94,11 +95,15 @@ instance Ord IpfsQueryItem where
            in
              ak <= bk
 
+data HttpMethod = Get
+                | Post B.ByteString
+                deriving (Show)
+
 type PathSegments = [B.ByteString]
 
 type IpfsQuery = S.Set IpfsQueryItem
 
-data IpfsHttpInfo = IpfsHttpInfo PathSegments IpfsQuery
+data IpfsHttpInfo = IpfsHttpInfo HttpMethod PathSegments IpfsQuery
   deriving (Show)
 
 renderEndpoints :: PathSegments -> Builder
@@ -130,14 +135,16 @@ renderQuery = renderQueryBuilder True . fmap getQueryItem . S.toList
 -- |Performs a single IPFS API operation.
 performIpfsOperation :: (IpfsOperation a) => IpfsConnectionInfo -> a -> IO (Response (IpfsResponse a))
 performIpfsOperation conn op =
-  let (IpfsHttpInfo path query) = toHttpInfo op
+  let (IpfsHttpInfo method path query) = toHttpInfo op
       root = apiRoot conn
       endp = renderEndpoints path 
       qp = Network.Ipfs.Core.renderQuery query
       url = unpack $ toLazyByteString (root `append` endp `append` qp)
   in
-    do
-      r <- asJSON =<< get url 
-      return r
+    case method of
+      Get -> do r <- asJSON =<< get url 
+                return r
+      (Post body) -> do r <- asJSON =<< post url body
+                        return r
 
 

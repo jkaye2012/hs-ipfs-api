@@ -66,7 +66,7 @@ instance FromJSON SwarmPeers where
 
 instance IpfsOperation OpSwarmPeers where
   type IpfsResponse OpSwarmPeers = SwarmPeers
-  toHttpInfo = IpfsHttpInfo ["swarm", "peers"] . swarmPeersQuery
+  toHttpInfo = IpfsHttpInfo Get ["swarm", "peers"] . swarmPeersQuery
 
 data SwarmAddrs = SwarmAddrs
   {
@@ -87,7 +87,7 @@ opSwarmListenAddrs = OpSwarmListenAddrs ()
 
 instance IpfsOperation OpSwarmListenAddrs where
   type IpfsResponse OpSwarmListenAddrs = SwarmAddrs
-  toHttpInfo _ = IpfsHttpInfo ["swarm", "addrs", "listen"] emptyQuery
+  toHttpInfo _ = IpfsHttpInfo Get ["swarm", "addrs", "listen"] emptyQuery
 
 -- ** Local addresses
 
@@ -103,7 +103,7 @@ withIds = OpSwarmLocalAddrs . updateQuery ("id", Nothing) . swarmLocalAddrsQuery
 
 instance IpfsOperation OpSwarmLocalAddrs where
   type IpfsResponse OpSwarmLocalAddrs = SwarmAddrs
-  toHttpInfo = IpfsHttpInfo ["swarm", "addrs", "local"] . swarmLocalAddrsQuery
+  toHttpInfo = IpfsHttpInfo Get ["swarm", "addrs", "local"] . swarmLocalAddrsQuery
 
 -- ** Create a swarm connection
 
@@ -115,7 +115,7 @@ instance IpfsOperation OpSwarmConnect where
   type IpfsResponse OpSwarmConnect = SwarmAddrs
   toHttpInfo (OpSwarmConnect addr) =
     let query = newQuery [IpfsQueryItem ("arg", Just addr)] 
-    in IpfsHttpInfo ["swarm", "connect"] query
+    in IpfsHttpInfo Get ["swarm", "connect"] query
 
 -- ** Disconnect a previously created swarm connection
 
@@ -127,7 +127,7 @@ instance IpfsOperation OpSwarmDisconnect where
   type IpfsResponse OpSwarmDisconnect = SwarmAddrs
   toHttpInfo (OpSwarmDisconnect addr) =
     let query = newQuery [IpfsQueryItem ("arg", Just addr)] 
-    in IpfsHttpInfo ["swarm", "connect"] query
+    in IpfsHttpInfo Get ["swarm", "connect"] query
 
 -- ** Add a swarm filter
 
@@ -139,7 +139,7 @@ instance IpfsOperation OpSwarmAddFilter where
   type IpfsResponse OpSwarmAddFilter = SwarmAddrs
   toHttpInfo (OpSwarmAddFilter addr) =
     let query = newQuery [IpfsQueryItem ("arg", Just addr)] 
-    in IpfsHttpInfo ["swarm", "connect"] query
+    in IpfsHttpInfo Get ["swarm", "connect"] query
 
 -- ** Remove a swarm filter
 
@@ -151,4 +151,4 @@ instance IpfsOperation OpSwarmRemoveFilter where
   type IpfsResponse OpSwarmRemoveFilter = SwarmAddrs
   toHttpInfo (OpSwarmRemoveFilter addr) =
     let query = newQuery [IpfsQueryItem ("arg", Just addr)] 
-    in IpfsHttpInfo ["swarm", "connect"] query
+    in IpfsHttpInfo Get ["swarm", "connect"] query

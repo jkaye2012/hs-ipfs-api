@@ -11,6 +11,7 @@ module Network.Ipfs.Core
     IpfsQueryItem(..)
   , IpfsQuery
     -- ** Query utility functions
+  , ToQueryItem(..)
   , newQuery
   , updateQuery
   , emptyQuery
@@ -28,7 +29,8 @@ module Network.Ipfs.Core
   , pascalCase
   ) where
 
-import qualified Data.ByteString.Lazy as B
+import qualified Data.ByteString as B
+import qualified Data.ByteString.Lazy as BL
 import qualified Data.Set as S
 import qualified Data.Text as T
 import Data.Aeson (FromJSON(..), genericParseJSON)
@@ -46,28 +48,26 @@ data IpfsApiVersion = V0
                     deriving (Show, Eq)
 
 -- |Converts an 'IpfsApiVersion' to its corresponding URI segment. Used when constructing API endpoints.
-apiVersionUriPart :: IpfsApiVersion -> B.ByteString
+apiVersionUriPart :: IpfsApiVersion -> BL.ByteString
 apiVersionUriPart V0 = "v0"
 
 -- |Connection information for the client. Usually, this would point to an IPFS daemon
 -- running on the local host.
 data IpfsConnectionInfo = IpfsConnectionInfo
-  {
-    ipfsHost :: B.ByteString      -- ^ The host to which the client should connect.
+  { ipfsHost :: BL.ByteString      -- ^ The host to which the client should connect.
   , ipfsPort :: Int               -- ^ The post to which the client should connect.
   , ipfsVersion :: IpfsApiVersion -- ^ The version of the IPFS HTTP API served by the daemon.
   } deriving (Show)
 
 -- |The default IPFS connection.
 defaultConnectionInfo :: IpfsConnectionInfo
-defaultConnectionInfo =
-  IpfsConnectionInfo { ipfsHost = "127.0.0.1"
-                     , ipfsPort = 5001
-                     , ipfsVersion = V0
-                     }
+defaultConnectionInfo = IpfsConnectionInfo { ipfsHost = "127.0.0.1"
+                                           , ipfsPort = 5001
+                                           , ipfsVersion = V0
+                                           }
 
 -- |The http URL prefix.
-http :: B.ByteString
+http :: BL.ByteString
 http = "http://"
 
 -- |Constructs the URI root for a given IPFS HTTP connection.
@@ -78,7 +78,7 @@ apiRoot (IpfsConnectionInfo{..}) =
   let port = toByteString ipfsPort
       version = apiVersionUriPart ipfsVersion
   in
-    fromLazyByteString $ B.concat [http, ipfsHost, ":", port, "/api/", version, "/"]
+    fromLazyByteString $ BL.concat [http, ipfsHost, ":", port, "/api/", version, "/"]
 
 newtype IpfsQueryItem = IpfsQueryItem { getQueryItem :: QueryItem }
   deriving (Show)
@@ -99,7 +99,7 @@ data HttpMethod = Get
                 | Post B.ByteString
                 deriving (Show)
 
-type PathSegments = [B.ByteString]
+type PathSegments = [BL.ByteString]
 
 type IpfsQuery = S.Set IpfsQueryItem
 
@@ -107,12 +107,25 @@ data IpfsHttpInfo = IpfsHttpInfo HttpMethod PathSegments IpfsQuery
   deriving (Show)
 
 renderEndpoints :: PathSegments -> Builder
-renderEndpoints = fromLazyByteString . B.intercalate "/"
+renderEndpoints = fromLazyByteString . BL.intercalate "/"
 
 -- |Models an individual IPFS API operation.
 class (FromJSON (IpfsResponse a)) => IpfsOperation a where
   type IpfsResponse a :: * -- ^ The type that the client should expect to receive back from the API.
   toHttpInfo :: a -> IpfsHttpInfo -- ^ Converts the operation to its outgoing API representation.
+  
+-- |Types that can be converted to a QueryItem
+-- This is useful for more complex operations that need to have their parameters
+-- converted mostly by hand.
+class ToQueryItem a where
+  toQueryItem :: B.ByteString -> a -> IpfsQueryItem
+
+instance ToQueryItem Bool where
+  toQueryItem arg True = IpfsQueryItem (arg, Just "true")
+  toQueryItem arg False = IpfsQueryItem (arg, Just "false")
+
+instance ToQueryItem B.ByteString where
+  toQueryItem arg val = IpfsQueryItem (arg, Just val)
 
 -- |Constructs a new query from a list of 'IpfsQueryItem'.
 -- If multiple conflicting items are passed, the first one will be taken.
@@ -128,7 +141,7 @@ updateQuery :: QueryItem -> IpfsQuery -> IpfsQuery
 updateQuery q i = S.insert (IpfsQueryItem q) i
 
 -- |Coerces an 'IpfsQuery' to its corresponding 'Builder'.
--- Tis is only meant to be used after the entirety of a query has been constructed.
+-- This is only meant to be used after the entirety of a query has been constructed.
 renderQuery :: IpfsQuery -> Builder
 renderQuery = renderQueryBuilder True . fmap getQueryItem . S.toList
 

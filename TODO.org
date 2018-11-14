@@ -1,5 +1,4 @@
 
-* TODO Operations need to be able to POST in addition to GET. Potentially other verbs as well, should abstract this
 * TODO Error handling; looks like there is a special JSON type sent back from failing commands
 ** Even for endpoints that would normally return a different content type, the error always comes back as JSON.
    We'll need to be able to parse properly depending on the response code.

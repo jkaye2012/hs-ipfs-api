@@ -27,6 +27,7 @@ module Network.Ipfs.Core
   , genericParseJSON
   , aesonPrefix
   , pascalCase
+  , Part
   ) where
 
 import qualified Data.ByteString as B
@@ -96,7 +97,7 @@ instance Ord IpfsQueryItem where
              ak <= bk
 
 data HttpMethod = Get
-                | Post B.ByteString
+                | Post Part
                 deriving (Show)
 
 type PathSegments = [BL.ByteString]

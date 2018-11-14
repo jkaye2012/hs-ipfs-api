@@ -55,13 +55,12 @@ defaultAddFileOptions = AddFileOptions
   , addFileHash = "sha2-256"
   }
 
-data OpAddFile = OpAddFile AddFileOptions B.ByteString
+data OpAddFile = OpAddFile AddFileOptions Part
   deriving (Show)
 
 data FileResponse = FileResponse
   { fileName :: T.Text
   , fileHash :: T.Text
-  , fileBytes :: Int
   , fileSize :: T.Text
   } deriving (Show, Generic)
 
@@ -86,4 +85,3 @@ instance IpfsOperation OpAddFile where
                            , toQueryItem "fscache" addFileCache
                            , toQueryItem "hash" addFileHash
                            ]
-  

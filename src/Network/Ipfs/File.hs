@@ -8,6 +8,9 @@
 -- |Operations for viewing and manipulating IPFS files.
 module Network.Ipfs.File
   (
+    AddFileOptions(..)
+  , OpAddFile(..)
+  , FileResponse(..)
   ) where
 
 import qualified Data.ByteString as B

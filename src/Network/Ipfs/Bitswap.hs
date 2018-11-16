@@ -12,6 +12,7 @@ module Network.Ipfs.Bitswap
   , OpBitswapLedger(..)
   ) where
 
+import Data.Aeson.Types (Value)
 import qualified Data.ByteString as B
 import qualified Data.Text as T
 
@@ -19,6 +20,7 @@ import Network.Ipfs.Core
 
 -- * Bitswap ledger
 
+-- |The return value for the 'OpBitswapLedger' operation.
 data BitswapLedger = BitswapLedger
   { bitswapPeer :: T.Text
   , bitswapValue :: Double
@@ -39,3 +41,10 @@ instance IpfsOperation OpBitswapLedger where
   toHttpInfo (OpBitswapLedger peerId) =
     let query = newQuery [IpfsQueryItem ("arg", Just peerId)] 
     in IpfsHttpInfo Get ["bitswap", "ledger"] query
+
+data OpBitswapReprovide = OpBitswapReprovide
+  deriving Show
+
+instance IpfsOperation OpBitswapReprovide where
+  type IpfsResponse OpBitswapReprovide = ()
+  toHttpInfo _ = IpfsHttpInfo Get ["bitswap", "reprovide"] emptyQuery

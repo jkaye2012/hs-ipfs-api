@@ -14,7 +14,9 @@ module Network.Ipfs.Bitswap
 
 import Data.Aeson.Types (Value)
 import qualified Data.ByteString as B
+import qualified Data.Map as Map
 import qualified Data.Text as T
+import Data.Word
 
 import Network.Ipfs.Core
 
@@ -39,12 +41,41 @@ data OpBitswapLedger = OpBitswapLedger B.ByteString
 instance IpfsOperation OpBitswapLedger where
   type IpfsResponse OpBitswapLedger = BitswapLedger
   toHttpInfo (OpBitswapLedger peerId) =
-    let query = newQuery [IpfsQueryItem ("arg", Just peerId)] 
+    let query = newQuery [IpfsQueryItem ("arg", Just peerId)]
     in IpfsHttpInfo Get ["bitswap", "ledger"] query
 
+-- * Bitswap provider
+
+-- |https://docs.ipfs.io/reference/api/http/#api-v0-bitswap-reprovide
 data OpBitswapReprovide = OpBitswapReprovide
   deriving Show
 
 instance IpfsOperation OpBitswapReprovide where
   type IpfsResponse OpBitswapReprovide = ()
   toHttpInfo _ = IpfsHttpInfo Get ["bitswap", "reprovide"] emptyQuery
+
+-- * Bitswap statistics
+
+-- |The response type for the 'OpBitswapStat' operation
+data BitswapStatistics = BitswapStatistics
+  { bitswapBufLen :: Int
+  , bitswapWantlist :: [Map.Map String String]
+  , bitswapPeers :: [String]
+  , bitswapBlocksReceived :: Word64
+  , bitswapDataReceived :: Word64
+  , bitswapBlocksSent :: Word64
+  , bitswapDataSent :: Word64
+  , bitswapDupBlksReceived :: Word64
+  , bitswapDupDataReceived :: Word64
+  } deriving (Show, Generic)
+
+instance FromJSON BitswapStatistics where
+  parseJSON = genericParseJSON $ aesonPrefix pascalCase
+
+-- |https://docs.ipfs.io/reference/api/http/#api-v0-bitswap-stat
+data OpBitswapStat = OpBitswapStat
+  deriving Show
+
+instance IpfsOperation OpBitswapStat where
+  type IpfsResponse OpBitswapStat = BitswapStatistics
+  toHttpInfo _ = IpfsHttpInfo Get ["bitswap", "stat"] emptyQuery

@@ -5,12 +5,12 @@
 {-# LANGUAGE StrictData #-}
 {-# LANGUAGE TypeFamilies #-}
 
--- |Operations for viewing and manipulating IPFS files.
+-- |Operations for adding files to IPFS.
 module Network.Ipfs.File
   (
-    AddFileOptions(..)
+    FileResponse(..)
+  , AddFileOptions(..)
   , OpAddFile(..)
-  , FileResponse(..)
   ) where
 
 import qualified Data.ByteString as B
@@ -20,8 +20,7 @@ import qualified Data.Text as T
 import Network.Ipfs.Core
 
 data AddFileOptions = AddFileOptions
-  {
-    addFileRecursive :: Bool
+  { addFileRecursive :: Bool
   , addFileQuiet :: Bool
   , addFileQuieter :: Bool
   , addFileSilent :: Bool
@@ -40,8 +39,7 @@ data AddFileOptions = AddFileOptions
 
 defaultAddFileOptions :: AddFileOptions
 defaultAddFileOptions = AddFileOptions
-  {
-    addFileRecursive = False
+  { addFileRecursive = False
   , addFileQuiet = False
   , addFileQuieter = False
   , addFileSilent = False
@@ -58,9 +56,7 @@ defaultAddFileOptions = AddFileOptions
   , addFileHash = "sha2-256"
   }
 
-data OpAddFile = OpAddFile AddFileOptions Part
-  deriving (Show)
-
+-- |The response type for the 'OpAddFile' operation.
 data FileResponse = FileResponse
   { fileName :: T.Text
   , fileHash :: T.Text
@@ -69,6 +65,10 @@ data FileResponse = FileResponse
 
 instance FromJSON FileResponse where
   parseJSON = genericParseJSON $ aesonPrefix pascalCase
+
+-- |https://docs.ipfs.io/reference/api/http/#api-v0-add
+data OpAddFile = OpAddFile AddFileOptions Part
+  deriving (Show)
 
 instance IpfsOperation OpAddFile where
   type IpfsResponse OpAddFile = FileResponse

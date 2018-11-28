@@ -49,16 +49,14 @@ withStreams :: OpSwarmPeers -> OpSwarmPeers
 withStreams = OpSwarmPeers . updateQuery ("streams", Nothing) . swarmPeersQuery
 
 data SwarmPeer = SwarmPeer
-  {
-    swarmpeerAddr :: String
+  { swarmpeerAddr :: String
   } deriving (Show, Generic)
 
 instance FromJSON SwarmPeer where
   parseJSON = genericParseJSON $ aesonPrefix pascalCase
 
 data SwarmPeers = SwarmPeers
-  {
-     swarmPeers :: [SwarmPeer]
+  { swarmPeers :: [SwarmPeer]
   } deriving (Show, Generic)
 
 instance FromJSON SwarmPeers where
@@ -69,8 +67,7 @@ instance IpfsOperation OpSwarmPeers where
   toHttpInfo = IpfsHttpInfo Get ["swarm", "peers"] . swarmPeersQuery
 
 data SwarmAddrs = SwarmAddrs
-  {
-    addrStrings :: [String]
+  { addrStrings :: [String]
   } deriving (Show, Generic)
 
 instance FromJSON SwarmAddrs where

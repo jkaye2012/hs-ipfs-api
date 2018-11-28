@@ -10,6 +10,12 @@ module Network.Ipfs.Bitswap
   (
     BitswapLedger(..)
   , OpBitswapLedger(..)
+  , OpBitswapReprovide(..)
+  , BitswapStatistics(..)
+  , OpBitswapStat(..)
+  , OpBitswapUnwant(..)
+  , BitswapWantlist(..)
+  , OpBitswapWantlist(..)
   ) where
 
 import Data.Aeson.Types (Value)
@@ -58,8 +64,8 @@ instance IpfsOperation OpBitswapReprovide where
 
 -- |The response type for the 'OpBitswapStat' operation
 data BitswapStatistics = BitswapStatistics
-  { bitswapBufLen :: Int
-  , bitswapWantlist :: [Map.Map String String]
+  { bitswapProvideBufLen :: Int
+  , bitswapWantlist :: [Map.Map T.Text T.Text]
   , bitswapPeers :: [String]
   , bitswapBlocksReceived :: Word64
   , bitswapDataReceived :: Word64
@@ -79,3 +85,32 @@ data OpBitswapStat = OpBitswapStat
 instance IpfsOperation OpBitswapStat where
   type IpfsResponse OpBitswapStat = BitswapStatistics
   toHttpInfo _ = IpfsHttpInfo Get ["bitswap", "stat"] emptyQuery
+
+-- |https://docs.ipfs.io/reference/api/http/#api-v0-bitswap-unwant
+data OpBitswapUnwant = OpBitswapUnwant B.ByteString
+  deriving Show
+
+instance IpfsOperation OpBitswapUnwant where
+  type IpfsResponse OpBitswapUnwant = ()
+  toHttpInfo (OpBitswapUnwant keys) =
+    let query = newQuery [IpfsQueryItem ("arg", Just keys)]
+    in IpfsHttpInfo Get ["bitswap", "unwant"] query
+
+-- |The response type for the 'OpBitswapWantlist' operation
+data BitswapWantlist = BitswapWantlist
+  { bitswapKeys :: [Map.Map T.Text T.Text]
+  } deriving (Show, Generic)
+
+instance FromJSON BitswapWantlist where
+  parseJSON = genericParseJSON $ aesonPrefix pascalCase
+
+-- |https://docs.ipfs.io/reference/api/http/#api-v0-bitswap-wantlist
+data OpBitswapWantlist = OpBitswapWantlist (Maybe B.ByteString)
+  deriving Show
+
+instance IpfsOperation OpBitswapWantlist where
+  type IpfsResponse OpBitswapWantlist = BitswapWantlist
+  toHttpInfo (OpBitswapWantlist Nothing) = IpfsHttpInfo Get ["bitswap", "wantlist"] emptyQuery
+  toHttpInfo (OpBitswapWantlist (Just peer)) =
+    let query = newQuery [IpfsQueryItem ("peer", Just peer)]
+    in IpfsHttpInfo Get ["bitswap", "wantlist"] query

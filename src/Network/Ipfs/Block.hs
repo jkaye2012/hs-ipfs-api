@@ -91,7 +91,8 @@ instance FromJSON RemoveBlockResponse where
 instance IpfsOperation OpRemoveBlock where
   type IpfsResponse OpRemoveBlock = RemoveBlockResponse
   toHttpInfo (OpRemoveBlock RemoveBlockOptions{..} hash) =
-    let query = newQuery [ toQueryItem "force" removeForce
+    let query = newQuery [ toQueryItem "arg" hash
+                         , toQueryItem "force" removeForce
                          , toQueryItem "quiet" removeQuiet ]
     in IpfsHttpInfo Get ["block", "remove"] query
   

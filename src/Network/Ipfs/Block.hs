@@ -12,7 +12,7 @@ module Network.Ipfs.Block
     OpGetBlock(..)
     -- * Block creation
   , PutBlockResponse(..)
-  , PutBlockOptions
+  , PutBlockOptions(putBlockMhType, putBlockMhLen)
   , defaultPutBlockOptions
   , OpPutBlock(..)
   ) where
@@ -67,3 +67,31 @@ instance IpfsOperation OpPutBlock where
                          , toQueryItem "mhlen" putBlockMhLen
                          ]
     in IpfsHttpInfo (Post file) ["block", "put"] query
+
+data RemoveBlockOptions = RemoveBlockOptions
+  { removeForce :: Bool
+  , removeQuiet :: Bool
+  } deriving (Show)
+
+defaultRemoveBlockOptions :: RemoveBlockOptions
+defaultRemoveBlockOptions = RemoveBlockOptions { removeForce = False
+                                               , removeQuiet = False
+                                               }
+
+data OpRemoveBlock = OpRemoveBlock RemoveBlockOptions B.ByteString
+  deriving (Show)
+
+data RemoveBlockResponse = RemoveBlockResponse { blockHash :: T.Text
+                                               , blockError :: T.Text
+                                               } deriving (Show, Generic)
+
+instance FromJSON RemoveBlockResponse where
+  parseJSON = genericParseJSON $ aesonPrefix pascalCase
+
+instance IpfsOperation OpRemoveBlock where
+  type IpfsResponse OpRemoveBlock = RemoveBlockResponse
+  toHttpInfo (OpRemoveBlock RemoveBlockOptions{..} hash) =
+    let query = newQuery [ toQueryItem "force" removeForce
+                         , toQueryItem "quiet" removeQuiet ]
+    in IpfsHttpInfo Get ["block", "remove"] query
+  

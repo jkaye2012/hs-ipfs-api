@@ -13,6 +13,7 @@ module Network.Ipfs.Core
     -- ** Query utility functions
   , ToQueryItem(..)
   , newQuery
+  , singletonQuery
   , updateQuery
   , emptyQuery
     -- * API operation building blocks
@@ -134,6 +135,10 @@ instance ToQueryItem Int where
 -- If multiple conflicting items are passed, the first one will be taken.
 newQuery :: [IpfsQueryItem] -> IpfsQuery
 newQuery = S.fromList 
+
+-- |Constructs a new query using a single key and value.
+singletonQuery :: (ToQueryItem a) => B.ByteString -> a -> IpfsQuery
+singletonQuery arg val = newQuery [toQueryItem arg val]
 
 -- |Constructs a new empty query. Useful if all potential components of a query are optional.
 emptyQuery :: IpfsQuery

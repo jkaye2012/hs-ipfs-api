@@ -8,13 +8,21 @@
 -- |Operations for interacting with block operations.
 module Network.Ipfs.Block
   (
+    -- * Common types
+    BlockResponse(blockKey, blockSize)
     -- * Block retrieval
-    OpGetBlock(..)
+  , OpGetBlock(..)
     -- * Block creation
-  , PutBlockResponse(..)
   , PutBlockOptions(putBlockMhType, putBlockMhLen)
   , defaultPutBlockOptions
   , OpPutBlock(..)
+    -- * Block removal
+  , RemoveBlockOptions(removeForce, removeQuiet)
+  , defaultRemoveBlockOptions
+  , OpRemoveBlock(..)
+  , RemoveBlockResponse(blockHash, blockError)
+    -- * Block statistics
+  , OpBlockStat(..)
   ) where
 
 import Data.Aeson.Types (Value)
@@ -51,17 +59,17 @@ defaultPutBlockOptions = PutBlockOptions { putBlockMhType = "sha2-256"
 data OpPutBlock = OpPutBlock PutBlockOptions Part
   deriving (Show)
 
--- |The response for the 'OpPutBlock' operation.
-data PutBlockResponse = PutBlockResponse
+-- |The response for operations that return geneirc information blocks. 
+data BlockResponse = BlockResponse
   { blockKey :: T.Text
   , blockSize :: Int
   } deriving (Show, Generic)
 
-instance FromJSON PutBlockResponse where
+instance FromJSON BlockResponse where
   parseJSON = genericParseJSON $ aesonPrefix pascalCase
 
 instance IpfsOperation OpPutBlock where
-  type IpfsResponse OpPutBlock = PutBlockResponse
+  type IpfsResponse OpPutBlock = BlockResponse
   toHttpInfo (OpPutBlock PutBlockOptions{..} file) =
     let query = newQuery [ toQueryItem "mhtype" putBlockMhType
                          , toQueryItem "mhlen" putBlockMhLen
@@ -96,3 +104,8 @@ instance IpfsOperation OpRemoveBlock where
                          , toQueryItem "quiet" removeQuiet ]
     in IpfsHttpInfo Get ["block", "remove"] query
   
+data OpBlockStat = OpBlockStat B.ByteString deriving (Show)
+
+instance IpfsOperation OpBlockStat where
+  type IpfsResponse OpBlockStat = BlockResponse
+  toHttpInfo (OpBlockStat hash) = IpfsHttpInfo Get ["block", "stat"] $ singletonQuery "arg" hash

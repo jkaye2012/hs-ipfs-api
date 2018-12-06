@@ -36,10 +36,9 @@ import qualified Data.Set as S
 import qualified Data.Text as T
 import Data.Aeson (FromJSON(..), genericParseJSON)
 import Data.Aeson.Casing (aesonPrefix, pascalCase)
-import Data.Binary (Binary)
+import Data.Binary (Binary, encode)
 import Data.Binary.Builder (Builder, fromLazyByteString, append, toLazyByteString)
 import Data.ByteString.Lazy.Char8 (unpack)
-import Data.ByteString.Conversion (toByteString)
 import GHC.Generics (Generic)
 import Network.HTTP.Types
 import Network.Wreq
@@ -76,7 +75,7 @@ http = "http://"
 -- the starting point for all client functionality.
 apiRoot :: IpfsConnectionInfo -> Builder
 apiRoot (IpfsConnectionInfo{..}) =
-  let port = toByteString ipfsPort
+  let port = encode ipfsPort
       version = apiVersionUriPart ipfsVersion
   in
     fromLazyByteString $ BL.concat [http, ipfsHost, ":", port, "/api/", version, "/"]
@@ -127,6 +126,9 @@ instance ToQueryItem Bool where
 
 instance ToQueryItem B.ByteString where
   toQueryItem arg val = IpfsQueryItem (arg, Just val)
+
+instance ToQueryItem Int where
+  toQueryItem arg val = IpfsQueryItem (arg, Just (BL.toStrict $ encode val))
 
 -- |Constructs a new query from a list of 'IpfsQueryItem'.
 -- If multiple conflicting items are passed, the first one will be taken.

@@ -1,9 +1,5 @@
-{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE StrictData #-}
-{-# LANGUAGE TypeFamilies #-}
 
 module Network.Ipfs.Core
   (
@@ -39,7 +35,7 @@ import Data.Aeson (FromJSON(..), genericParseJSON)
 import Data.Aeson.Casing (aesonPrefix, pascalCase)
 import Data.Binary (Binary, encode)
 import Data.Binary.Builder (Builder, fromLazyByteString, append, toLazyByteString)
-import Data.ByteString.Lazy.Char8 (unpack)
+import Data.ByteString.Lazy.Char8 (pack, unpack)
 import GHC.Generics (Generic)
 import Network.HTTP.Types
 import Network.Wreq
@@ -56,7 +52,7 @@ apiVersionUriPart V0 = "v0"
 -- running on the local host.
 data IpfsConnectionInfo = IpfsConnectionInfo
   { ipfsHost :: BL.ByteString      -- ^ The host to which the client should connect.
-  , ipfsPort :: Int               -- ^ The post to which the client should connect.
+  , ipfsPort :: Int               -- ^ The port to which the client should connect.
   , ipfsVersion :: IpfsApiVersion -- ^ The version of the IPFS HTTP API served by the daemon.
   } deriving (Show)
 
@@ -76,7 +72,7 @@ http = "http://"
 -- the starting point for all client functionality.
 apiRoot :: IpfsConnectionInfo -> Builder
 apiRoot (IpfsConnectionInfo{..}) =
-  let port = encode ipfsPort
+  let port = pack . show $ ipfsPort
       version = apiVersionUriPart ipfsVersion
   in
     fromLazyByteString $ BL.concat [http, ipfsHost, ":", port, "/api/", version, "/"]

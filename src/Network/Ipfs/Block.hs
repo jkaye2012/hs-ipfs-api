@@ -1,9 +1,4 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE StrictData #-}
-{-# LANGUAGE TypeFamilies #-}
 
 -- |Operations for interacting with block operations.
 module Network.Ipfs.Block

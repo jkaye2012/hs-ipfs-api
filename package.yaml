@@ -33,6 +33,11 @@ dependencies:
 
 library:
   source-dirs: src
+  default-extensions:
+    - DeriveGeneric
+    - OverloadedStrings
+    - StrictData
+    - TypeFamilies
 
 executables:
   hs-ipfs-api-exe:

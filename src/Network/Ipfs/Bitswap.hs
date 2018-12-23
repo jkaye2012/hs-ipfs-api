@@ -1,9 +1,3 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE StrictData #-}
-{-# LANGUAGE TypeFamilies #-}
 
 -- |Operations for interacting with the bitswap data trading module.
 module Network.Ipfs.Bitswap

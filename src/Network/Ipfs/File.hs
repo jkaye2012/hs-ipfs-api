@@ -1,9 +1,4 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE StrictData #-}
-{-# LANGUAGE TypeFamilies #-}
 
 -- |Operations for adding files to IPFS.
 module Network.Ipfs.File

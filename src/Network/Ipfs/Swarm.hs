@@ -1,9 +1,3 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE StrictData #-}
-{-# LANGUAGE TypeFamilies #-}
 
 -- |Information about the current IPFS swarm.
 module Network.Ipfs.Swarm

@@ -11,11 +11,7 @@ module Network.Ipfs.Bootstrap
   , OpRemovePeers(..)
   ) where
 
-import Data.Aeson.Types (Value)
-import qualified Data.ByteString as B
-import qualified Data.Map as Map
 import qualified Data.Text as T
-import Data.Word
 
 import Network.Ipfs.Core
 

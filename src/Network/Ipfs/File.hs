@@ -11,6 +11,7 @@ module Network.Ipfs.File
 import qualified Data.ByteString as B
 import qualified Data.Set as Set
 import qualified Data.Text as T
+import Data.Default(Default)
 
 import Network.Ipfs.Core
 
@@ -83,3 +84,23 @@ instance IpfsOperation OpAddFile where
                            , toQueryItem "fscache" addFileCache
                            , toQueryItem "hash" addFileHash
                            ]
+
+data CatFileOptions = CatFileOptions
+  { catOffset :: Int
+  , catLength :: Maybe Int
+  } deriving (Show, Generic)
+
+instance Default CatFileOptions
+
+-- |https://docs.ipfs.io/reference/api/http/#api-v0-cat
+data OpCatFile = OpCatFile B.ByteString CatFileOptions
+  deriving (Show)
+
+instance IpfsOperation OpCatFile where
+  type IpfsResponse OpCatFile = T.Text
+  toHttpInfo (OpCatFile path CatFileOptions{..}) = IpfsHttpInfo Get ["cat"] query
+    where
+      baseQuery = newQuery [ toQueryItem "arg" path, toQueryItem "offset" catOffset ]
+      query = case catLength of
+                Just len -> updateQuery "length" len baseQuery
+                Nothing -> baseQuery

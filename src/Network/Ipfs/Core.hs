@@ -33,7 +33,6 @@ import qualified Data.Set as S
 import qualified Data.Text as T
 import Data.Aeson (FromJSON(..), genericParseJSON)
 import Data.Aeson.Casing (aesonPrefix, pascalCase)
-import Data.Binary (Binary, encode)
 import Data.Binary.Builder (Builder, fromLazyByteString, append, toLazyByteString)
 import Data.ByteString.Lazy.Char8 (pack, unpack)
 import GHC.Generics (Generic)
@@ -125,7 +124,14 @@ instance ToQueryItem B.ByteString where
   toQueryItem arg val = IpfsQueryItem (arg, Just val)
 
 instance ToQueryItem Int where
-  toQueryItem arg val = IpfsQueryItem (arg, Just (BL.toStrict $ encode val))
+  toQueryItem arg val = IpfsQueryItem (arg, Just (BL.toStrict . pack $ show val))
+
+instance ToQueryItem () where
+  toQueryItem arg _ = IpfsQueryItem (arg, Nothing)
+
+instance (ToQueryItem a) => ToQueryItem (Maybe a) where
+  toQueryItem arg Nothing = IpfsQueryItem (arg, Nothing)
+  toQueryItem arg (Just thing) = toQueryItem arg thing
 
 -- |Constructs a new query from a list of 'IpfsQueryItem'.
 -- If multiple conflicting items are passed, the first one will be taken.
@@ -141,8 +147,8 @@ emptyQuery :: IpfsQuery
 emptyQuery = newQuery []
 
 -- |Adds a single item to an existing 'IpfsQuery'
-updateQuery :: QueryItem -> IpfsQuery -> IpfsQuery
-updateQuery q i = S.insert (IpfsQueryItem q) i
+updateQuery :: ToQueryItem a => B.ByteString -> a -> IpfsQuery -> IpfsQuery
+updateQuery arg item query = S.insert (toQueryItem arg item) query
 
 -- |Coerces an 'IpfsQuery' to its corresponding 'Builder'.
 -- This is only meant to be used after the entirety of a query has been constructed.
@@ -158,6 +164,7 @@ performIpfsOperation conn op =
       qp = Network.Ipfs.Core.renderQuery query
       url = unpack $ toLazyByteString (root `append` endp `append` qp)
   in
+    -- TODO: text/plain needs to be handled here somehow, asJSON gets upset about it
     case method of
       Get -> do r <- asJSON =<< get url 
                 return r

@@ -34,13 +34,13 @@ opSwarmPeers :: OpSwarmPeers
 opSwarmPeers = OpSwarmPeers emptyQuery
 
 verbose :: OpSwarmPeers -> OpSwarmPeers
-verbose = OpSwarmPeers . updateQuery ("verbose", Nothing) . swarmPeersQuery
+verbose = OpSwarmPeers . updateQuery "verbose" () . swarmPeersQuery
 
 withLatency :: OpSwarmPeers -> OpSwarmPeers
-withLatency = OpSwarmPeers . updateQuery ("latency", Nothing) . swarmPeersQuery
+withLatency = OpSwarmPeers . updateQuery "latency" () . swarmPeersQuery
 
 withStreams :: OpSwarmPeers -> OpSwarmPeers
-withStreams = OpSwarmPeers . updateQuery ("streams", Nothing) . swarmPeersQuery
+withStreams = OpSwarmPeers . updateQuery "streams" () . swarmPeersQuery
 
 data SwarmPeer = SwarmPeer
   { swarmpeerAddr :: String
@@ -90,7 +90,7 @@ opSwarmLocalAddrs :: OpSwarmLocalAddrs
 opSwarmLocalAddrs = OpSwarmLocalAddrs emptyQuery
 
 withIds :: OpSwarmLocalAddrs -> OpSwarmLocalAddrs
-withIds = OpSwarmLocalAddrs . updateQuery ("id", Nothing) . swarmLocalAddrsQuery
+withIds = OpSwarmLocalAddrs . updateQuery "id" () . swarmLocalAddrsQuery
 
 instance IpfsOperation OpSwarmLocalAddrs where
   type IpfsResponse OpSwarmLocalAddrs = SwarmAddrs

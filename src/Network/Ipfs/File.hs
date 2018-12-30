@@ -98,7 +98,7 @@ data OpCatFile = OpCatFile B.ByteString CatFileOptions
 
 instance IpfsOperation OpCatFile where
   type IpfsResponse OpCatFile = T.Text
-  toHttpInfo (OpCatFile path CatFileOptions{..}) = IpfsHttpInfo Get ["cat"] query
+  toHttpInfo (OpCatFile path CatFileOptions{..}) = IpfsHttpInfo GetText ["cat"] query
     where
       baseQuery = newQuery [ toQueryItem "arg" path, toQueryItem "offset" catOffset ]
       query = case catLength of

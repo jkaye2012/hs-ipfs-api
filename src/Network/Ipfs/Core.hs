@@ -30,10 +30,11 @@ module Network.Ipfs.Core
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Set as S
-import qualified Data.Text as T
-import Data.Aeson (FromJSON(..), genericParseJSON)
+import Control.Lens
+import Data.Aeson (FromJSON(..), genericParseJSON, Value(..), fromJSON, Result(..))
 import Data.Aeson.Casing (aesonPrefix, pascalCase)
 import Data.Binary.Builder (Builder, fromLazyByteString, append, toLazyByteString)
+import Data.ByteString.Conversion (fromByteString')
 import Data.ByteString.Lazy.Char8 (pack, unpack)
 import GHC.Generics (Generic)
 import Network.HTTP.Types
@@ -92,6 +93,7 @@ instance Ord IpfsQueryItem where
              ak <= bk
 
 data HttpMethod = Get
+                | GetText
                 | Post Part
                 deriving (Show)
 
@@ -164,11 +166,21 @@ performIpfsOperation conn op =
       qp = Network.Ipfs.Core.renderQuery query
       url = unpack $ toLazyByteString (root `append` endp `append` qp)
   in
-    -- TODO: text/plain needs to be handled here somehow, asJSON gets upset about it
     case method of
-      Get -> do r <- asJSON =<< get url 
-                return r
-      (Post body) -> do r <- asJSON =<< post url body
-                        return r
+      Get -> do
+        r <- asJSON =<< get url 
+        return r
+      GetText -> do
+        resp <- get url
+        let res = do
+              body <- fromByteString' $ resp ^. responseBody
+              return $ fromJSON $ String body
+        case res of
+          Just (Success r) -> return $ fmap (const r) resp
+          Just (Error err) -> error "failed to parse response as text"
+          otherwise -> error "failed to convert bytestring to text; encoding issue?"
+      (Post body) -> do
+        r <- asJSON =<< post url body
+        return r
 
 

@@ -29,7 +29,6 @@ module Network.Ipfs.Core
 
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
-import qualified Data.Set as S
 import Control.Lens
 import Data.Aeson (FromJSON(..), genericParseJSON, Value(..), fromJSON, Result(..))
 import Data.Aeson.Casing (aesonPrefix, pascalCase)
@@ -77,44 +76,24 @@ apiRoot (IpfsConnectionInfo{..}) =
   in
     fromLazyByteString $ BL.concat [http, ipfsHost, ":", port, "/api/", version, "/"]
 
-newtype IpfsQueryItem = IpfsQueryItem { getQueryItem :: QueryItem }
+-- |A single query parameter that may be sent to the IPFS daemon.
+-- We model default parameters directly to make the client binding simple and consistent;
+-- every applicable operation can be given a record type of options that satisfy the
+-- 'Data.Default.Default' typeclass.
+data IpfsQueryItem = IpfsQueryItem QueryItem -- ^ A query parameter that has been set by the user.
+                   | Default -- ^ A query parameter that should use the API default.
+                   deriving (Show)
+
+-- |A newtype wrapper modeling query parameters for an IPFS operation.
+-- While these queries will generally be built atomically, the type supports incremental
+-- construction of queries should such use be necessary in the future.
+newtype IpfsQuery = IpfsQuery [IpfsQueryItem]
   deriving (Show)
-
-instance Eq IpfsQueryItem where
-  a == b = let (ak, _) = getQueryItem a
-               (bk, _) = getQueryItem b
-           in
-             ak == bk
-
-instance Ord IpfsQueryItem where
-  a <= b = let (ak, _) = getQueryItem a
-               (bk, _) = getQueryItem b
-           in
-             ak <= bk
-
-data HttpMethod = Get
-                | GetText
-                | Post Part
-                deriving (Show)
-
-type PathSegments = [BL.ByteString]
-
-type IpfsQuery = S.Set IpfsQueryItem
-
-data IpfsHttpInfo = IpfsHttpInfo HttpMethod PathSegments IpfsQuery
-  deriving (Show)
-
-renderEndpoints :: PathSegments -> Builder
-renderEndpoints = fromLazyByteString . BL.intercalate "/"
-
--- |Models an individual IPFS API operation.
-class (FromJSON (IpfsResponse a)) => IpfsOperation a where
-  type IpfsResponse a :: * -- ^ The type that the client should expect to receive back from the API.
-  toHttpInfo :: a -> IpfsHttpInfo -- ^ Converts the operation to its outgoing API representation.
-  
--- |Types that can be converted to a QueryItem
--- This is useful for more complex operations that need to have their parameters
--- converted mostly by hand.
+ 
+-- |Types that can be converted to an 'IpfsQueryItem'.
+-- This typeclass allows us to write operation parameters as simple record types.
+-- The type can then be almost automatically collapsed into queries.
+-- TODO: GHC.Generics can probably be used to fully automate this process.
 class ToQueryItem a where
   toQueryItem :: B.ByteString -> a -> IpfsQueryItem
 
@@ -132,32 +111,55 @@ instance ToQueryItem () where
   toQueryItem arg _ = IpfsQueryItem (arg, Nothing)
 
 instance (ToQueryItem a) => ToQueryItem (Maybe a) where
-  toQueryItem arg Nothing = IpfsQueryItem (arg, Nothing)
+  toQueryItem _ Nothing = Default
   toQueryItem arg (Just thing) = toQueryItem arg thing
 
 -- |Constructs a new query from a list of 'IpfsQueryItem'.
--- If multiple conflicting items are passed, the first one will be taken.
+-- This function is very useful in combination with 'toQueryItem' for applicable types.
 newQuery :: [IpfsQueryItem] -> IpfsQuery
-newQuery = S.fromList 
+newQuery = IpfsQuery
 
 -- |Constructs a new query using a single key and value.
 singletonQuery :: (ToQueryItem a) => B.ByteString -> a -> IpfsQuery
 singletonQuery arg val = newQuery [toQueryItem arg val]
 
--- |Constructs a new empty query. Useful if all potential components of a query are optional.
+-- |Constructs a new empty query.
 emptyQuery :: IpfsQuery
 emptyQuery = newQuery []
 
--- |Adds a single item to an existing 'IpfsQuery'
+-- |Adds a single item to an existing 'IpfsQuery'.
 updateQuery :: ToQueryItem a => B.ByteString -> a -> IpfsQuery -> IpfsQuery
-updateQuery arg item query = S.insert (toQueryItem arg item) query
+updateQuery arg item (IpfsQuery query) = IpfsQuery $ (toQueryItem arg item) : query
 
 -- |Coerces an 'IpfsQuery' to its corresponding 'Builder'.
 -- This is only meant to be used after the entirety of a query has been constructed.
 renderQuery :: IpfsQuery -> Builder
-renderQuery = renderQueryBuilder True . fmap getQueryItem . S.toList
+renderQuery (IpfsQuery items) = renderQueryBuilder True $ toQuery items []
+  where 
+    toQuery [] acc = acc
+    toQuery (x:xs) acc = case x of
+      Default -> toQuery xs acc
+      (IpfsQueryItem item) -> toQuery xs (item : acc)
 
--- |Performs a single IPFS API operation.
+data HttpMethod = Get
+                | GetText
+                | Post Part
+                deriving (Show)
+
+type PathSegments = [BL.ByteString]
+
+data IpfsHttpInfo = IpfsHttpInfo HttpMethod PathSegments IpfsQuery
+  deriving (Show)
+
+renderEndpoints :: PathSegments -> Builder
+renderEndpoints = fromLazyByteString . BL.intercalate "/"
+
+-- |Models an individual IPFS API operation.
+class (FromJSON (IpfsResponse a)) => IpfsOperation a where
+  type IpfsResponse a :: * -- ^ The type that the client should expect to receive back from the API.
+  toHttpInfo :: a -> IpfsHttpInfo -- ^ Converts the operation to its outgoing API representation.
+
+-- |Performs an IPFS API operation.
 performIpfsOperation :: (IpfsOperation a) => IpfsConnectionInfo -> a -> IO (Response (IpfsResponse a))
 performIpfsOperation conn op =
   let (IpfsHttpInfo method path query) = toHttpInfo op

@@ -100,7 +100,7 @@ instance IpfsOperation OpCatFile where
   type IpfsResponse OpCatFile = T.Text
   toHttpInfo (OpCatFile path CatFileOptions{..}) = IpfsHttpInfo GetText ["cat"] query
     where
-      baseQuery = newQuery [ toQueryItem "arg" path, toQueryItem "offset" catOffset ]
-      query = case catLength of
-                Just len -> updateQuery "length" len baseQuery
-                Nothing -> baseQuery
+      query = newQuery [ toQueryItem "arg" path
+                       , toQueryItem "offset" catOffset
+                       , toQueryItem "length" catLength
+                       ]

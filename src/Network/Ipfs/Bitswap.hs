@@ -51,8 +51,8 @@ data OpBitswapReprovide = OpBitswapReprovide
   deriving Show
 
 instance IpfsOperation OpBitswapReprovide where
-  type IpfsResponse OpBitswapReprovide = ()
-  toHttpInfo _ = IpfsHttpInfo Get ["bitswap", "reprovide"] emptyQuery
+  type IpfsResponse OpBitswapReprovide = T.Text
+  toHttpInfo _ = IpfsHttpInfo GetText ["bitswap", "reprovide"] emptyQuery
 
 -- * Bitswap statistics
 
@@ -85,10 +85,10 @@ data OpBitswapUnwant = OpBitswapUnwant B.ByteString
   deriving Show
 
 instance IpfsOperation OpBitswapUnwant where
-  type IpfsResponse OpBitswapUnwant = ()
+  type IpfsResponse OpBitswapUnwant = T.Text
   toHttpInfo (OpBitswapUnwant keys) =
     let query = newQuery [IpfsQueryItem ("arg", Just keys)]
-    in IpfsHttpInfo Get ["bitswap", "unwant"] query
+    in IpfsHttpInfo GetText ["bitswap", "unwant"] query
 
 -- |The response type for the 'OpBitswapWantlist' operation
 data BitswapWantlist = BitswapWantlist

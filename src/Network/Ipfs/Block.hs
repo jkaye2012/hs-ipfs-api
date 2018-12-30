@@ -36,7 +36,7 @@ instance IpfsOperation OpGetBlock where
   type IpfsResponse OpGetBlock = T.Text
   toHttpInfo (OpGetBlock hash) =
     let query = newQuery [IpfsQueryItem ("arg", Just hash)]
-    in IpfsHttpInfo Get ["block", "get"] query
+    in IpfsHttpInfo GetText ["block", "get"] query
 
 -- |Models options for the 'OpPutBlock' operation.'
 data PutBlockOptions = PutBlockOptions

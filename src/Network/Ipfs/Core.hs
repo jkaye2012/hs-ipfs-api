@@ -142,7 +142,7 @@ renderQuery (IpfsQuery items) = renderQueryBuilder True $ foldr toQuery [] items
 
 data HttpMethod = Get
                 | GetText
-                | Post Part
+                | Post Part -- TODO: should add an indirection here so that binding users aren't exposed to Wreq
                 deriving (Show)
 
 type PathSegments = [BL.ByteString]

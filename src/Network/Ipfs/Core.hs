@@ -134,12 +134,11 @@ updateQuery arg item (IpfsQuery query) = IpfsQuery $ (toQueryItem arg item) : qu
 -- |Coerces an 'IpfsQuery' to its corresponding 'Builder'.
 -- This is only meant to be used after the entirety of a query has been constructed.
 renderQuery :: IpfsQuery -> Builder
-renderQuery (IpfsQuery items) = renderQueryBuilder True $ toQuery items []
+renderQuery (IpfsQuery items) = renderQueryBuilder True $ foldr toQuery [] items
   where 
-    toQuery [] acc = acc
-    toQuery (x:xs) acc = case x of
-      Default -> toQuery xs acc
-      (IpfsQueryItem item) -> toQuery xs (item : acc)
+    toQuery x acc = case x of
+      Default -> acc
+      (IpfsQueryItem item) -> item : acc
 
 data HttpMethod = Get
                 | GetText

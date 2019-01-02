@@ -96,6 +96,8 @@ newtype IpfsQuery = IpfsQuery [IpfsQueryItem]
 -- TODO: GHC.Generics can probably be used to fully automate this process.
 class ToQueryItem a where
   toQueryItem :: B.ByteString -> a -> IpfsQueryItem
+  toQueryItem' :: (B.ByteString, a) -> IpfsQueryItem
+  toQueryItem' (k, v) = toQueryItem k v
 
 instance ToQueryItem Bool where
   toQueryItem arg True = IpfsQueryItem (arg, Just "true")
@@ -143,6 +145,7 @@ renderQuery (IpfsQuery items) = renderQueryBuilder True $ foldr toQuery [] items
 data HttpMethod = Get
                 | GetText
                 | Post Part -- TODO: should add an indirection here so that binding users aren't exposed to Wreq
+                | PostText Part
                 deriving (Show)
 
 type PathSegments = [BL.ByteString]
@@ -157,6 +160,17 @@ renderEndpoints = fromLazyByteString . BL.intercalate "/"
 class (FromJSON (IpfsResponse a)) => IpfsOperation a where
   type IpfsResponse a :: * -- ^ The type that the client should expect to receive back from the API.
   toHttpInfo :: a -> IpfsHttpInfo -- ^ Converts the operation to its outgoing API representation.
+
+responseToText :: (FromJSON a) => Response BL.ByteString -> Response a
+responseToText resp =
+  let res = do
+        body <- fromByteString' $ resp ^. responseBody
+        return $ fromJSON $ String body
+  in
+    case res of
+      Just (Success r) -> fmap (const r) resp
+      Just (Error err) -> error "failed to parse response as text"
+      otherwise -> error "failed to convert bytestring to text; encoding issue?"
 
 -- |Performs an IPFS API operation.
 performIpfsOperation :: (IpfsOperation a) => IpfsConnectionInfo -> a -> IO (Response (IpfsResponse a))
@@ -173,15 +187,12 @@ performIpfsOperation conn op =
         return r
       GetText -> do
         resp <- get url
-        let res = do
-              body <- fromByteString' $ resp ^. responseBody
-              return $ fromJSON $ String body
-        case res of
-          Just (Success r) -> return $ fmap (const r) resp
-          Just (Error err) -> error "failed to parse response as text"
-          otherwise -> error "failed to convert bytestring to text; encoding issue?"
+        return $ responseToText resp
       (Post body) -> do
         r <- asJSON =<< post url body
         return r
+      (PostText body) -> do
+        resp <- post url body
+        return $ responseToText resp
 
 

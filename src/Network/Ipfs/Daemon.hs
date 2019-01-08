@@ -61,3 +61,29 @@ data OpConfigShow = OpConfigShow
 instance IpfsOperation OpConfigShow where
   type IpfsResponse OpConfigShow = T.Text
   toHttpInfo _ = IpfsHttpInfo GetText ["config", "show"] emptyQuery
+
+-- |https://docs.ipfs.io/reference/api/http/#api-v0-diag-cmds-clear
+data OpDiagClear = OpDiagClear
+  deriving (Show)
+
+instance IpfsOperation OpDiagClear where
+  type IpfsResponse OpDiagClear = T.Text
+  toHttpInfo _ = IpfsHttpInfo GetText ["diag", "cmds", "clear"] emptyQuery
+
+-- |https://docs.ipfs.io/reference/api/http/#api-v0-diag-cmds-set-time
+data OpDiagSetTime = OpDiagSetTime B.ByteString -- TODO: this should be a strong time type?
+  deriving (Show)
+
+instance IpfsOperation OpDiagSetTime where
+  type IpfsResponse OpDiagSetTime = T.Text
+  toHttpInfo (OpDiagSetTime time) = IpfsHttpInfo GetText ["diag", "cmds", "set-time"] query
+    where
+      query = newQuery [ toQueryItem "arg" time ]
+
+-- |https://docs.ipfs.io/reference/api/http/#api-v0-diag-sys
+data OpDiagSys = OpDiagSys
+  deriving (Show)
+
+instance IpfsOperation OpDiagSys where
+  type IpfsResponse OpDiagSys = T.Text
+  toHttpInfo _ = IpfsHttpInfo GetText ["diag", "sys"] emptyQuery

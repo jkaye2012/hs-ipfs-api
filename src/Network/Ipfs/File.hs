@@ -9,9 +9,11 @@ module Network.Ipfs.File
   ) where
 
 import qualified Data.ByteString as B
+import qualified Data.Map as M
 import qualified Data.Set as Set
 import qualified Data.Text as T
 import Data.Default(Default)
+import Data.Word
 
 import Network.Ipfs.Core
 
@@ -131,3 +133,42 @@ instance IpfsOperation OpResolveDns where
       query = newQuery [ toQueryItem "arg" path
                        , toQueryItem "recursive" resolveRecursive
                        ]
+
+-- |https://docs.ipfs.io/reference/api/http/#api-v0-file-ls
+data OpListDirectory = OpListDirectory B.ByteString
+  deriving (Show)
+
+data DirectoryLink = DirectoryLink
+  { dirlinkName :: T.Text
+  , dirlinkHash :: T.Text
+  , dirlinkSize :: Word64
+  , dirlinkType :: T.Text
+  } deriving (Show, Generic)
+
+data DirectoryObject = DirectoryObject
+  { dirobjectHash :: T.Text
+  , dirobjectSize :: Word64
+  , dirobjectType :: T.Text
+  , dirobjectLinks :: [DirectoryLink]
+  } deriving (Show, Generic)
+
+-- |The response type for the 'OpListDirectory' operation.
+data DirectoryContents = DirectoryContents
+  { directoryArguments :: M.Map T.Text T.Text
+  , directoryObjects :: M.Map T.Text DirectoryObject
+  } deriving (Show, Generic)
+
+instance FromJSON DirectoryLink where
+  parseJSON = genericParseJSON $ aesonPrefix pascalCase
+
+instance FromJSON DirectoryObject where
+  parseJSON = genericParseJSON $ aesonPrefix pascalCase
+
+instance FromJSON DirectoryContents where
+  parseJSON = genericParseJSON $ aesonPrefix pascalCase
+
+instance IpfsOperation OpListDirectory where
+  type IpfsResponse OpListDirectory = DirectoryContents
+  toHttpInfo (OpListDirectory path ) = IpfsHttpInfo Get ["file", "ls"] query
+    where
+      query = singletonQuery "arg" path

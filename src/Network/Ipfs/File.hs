@@ -172,3 +172,25 @@ instance IpfsOperation OpListDirectory where
   toHttpInfo (OpListDirectory path ) = IpfsHttpInfo Get ["file", "ls"] query
     where
       query = singletonQuery "arg" path
+
+-- |Options for the 'OpGetData' operation.
+data GetDataOptions = GetDataOptions
+  { getOutput :: Maybe B.ByteString
+  , getArchive :: Maybe Bool
+  , getCompressionLevel :: Maybe Int
+  } deriving (Show)
+
+-- |https://docs.ipfs.io/reference/api/http/#api-v0-get
+data OpGetData = OpGetData B.ByteString GetDataOptions
+  deriving (Show)
+
+instance IpfsOperation OpGetData where
+  type IpfsResponse OpGetData = T.Text
+  toHttpInfo (OpGetData path GetDataOptions{..}) = IpfsHttpInfo GetText ["get"] query
+    where
+      shouldCompress = getCompressionLevel >> return True
+      query = newQuery [ toQueryItem "arg" path
+                       , toQueryItem "output" getOutput
+                       , toQueryItem "archive" getArchive
+                       , toQueryItem "compression-level" getCompressionLevel
+                       , toQueryItem "compress" shouldCompress]

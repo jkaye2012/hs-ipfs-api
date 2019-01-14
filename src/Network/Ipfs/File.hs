@@ -41,7 +41,7 @@ defaultAddFileOptions = AddFileOptions
   , addFileSilent = False
   , addFileProgress = False
   , addFileTrickle = False
-  , addFileOnlyHash = False 
+  , addFileOnlyHash = False
   , addFileWrapDirectory = False
   , addFileHidden = False
   , addFileChunker = "size-262144"
@@ -103,4 +103,31 @@ instance IpfsOperation OpCatFile where
       query = newQuery [ toQueryItem "arg" path
                        , toQueryItem "offset" catOffset
                        , toQueryItem "length" catLength
+                       ]
+
+-- |Options for the 'OpResolveDns' operation.
+data DnsResolutionOptions = DnsResolutionOptions
+  { resolveRecursive :: Maybe Bool
+  } deriving (Show, Generic)
+
+instance Default DnsResolutionOptions
+
+-- |https://docs.ipfs.io/reference/api/http/#api-v0-dns
+data OpResolveDns = OpResolveDns B.ByteString DnsResolutionOptions
+  deriving (Show)
+
+-- |The response type for the 'OpResolveDns' operation.
+data DnsResolution = DnsResolution
+  { resolutionPath :: T.Text
+  } deriving (Show, Generic)
+
+instance FromJSON DnsResolution where
+  parseJSON = genericParseJSON $ aesonPrefix pascalCase
+
+instance IpfsOperation OpResolveDns where
+  type IpfsResponse OpResolveDns = DnsResolution
+  toHttpInfo (OpResolveDns path DnsResolutionOptions{..}) = IpfsHttpInfo Get ["dns"] query
+    where
+      query = newQuery [ toQueryItem "arg" path
+                       , toQueryItem "recursive" resolveRecursive
                        ]

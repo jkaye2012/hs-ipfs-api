@@ -9,6 +9,7 @@ module Network.Ipfs.Daemon
   , IpfsCommandOptions(..)
   , OpApplyConfigProfile(..)
   , OpConfigShow(..)
+  , OpId(..)
   ) where
 
 import qualified Data.ByteString as B
@@ -87,3 +88,25 @@ data OpDiagSys = OpDiagSys
 instance IpfsOperation OpDiagSys where
   type IpfsResponse OpDiagSys = T.Text
   toHttpInfo _ = IpfsHttpInfo GetText ["diag", "sys"] emptyQuery
+
+-- |https://docs.ipfs.io/reference/api/http/#api-v0-id
+data OpId = OpId (Maybe B.ByteString)
+  deriving (Show, Generic)
+
+instance Default OpId
+
+-- | The response type for the 'OpId' operation.
+data NodeInfo = NodeInfo
+  { nodeID :: T.Text
+  , nodePublicKey :: T.Text
+  , nodeAddresses :: [T.Text]
+  , nodeAgentVersion :: T.Text
+  , nodeProtocolVersion :: T.Text
+  } deriving (Show, Generic)
+
+instance FromJSON NodeInfo where
+  parseJSON = genericParseJSON $ aesonPrefix pascalCase
+
+instance IpfsOperation OpId where
+  type IpfsResponse OpId = NodeInfo
+  toHttpInfo (OpId peerId) = IpfsHttpInfo Get ["id"] (singletonQuery "arg" peerId)

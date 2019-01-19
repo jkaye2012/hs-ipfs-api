@@ -172,8 +172,9 @@ responseToText resp =
       Just (Error err) -> error "failed to parse response as text"
       otherwise -> error "failed to convert bytestring to text; encoding issue?"
 
+-- |Converts a failed Wreq response to an error string for the user.
 responseToError :: (Show a) => Response a -> String
-responseToError = show
+responseToError = show -- TODO: should do something better here
 
 -- |Performs an IPFS API operation.
 --performIpfsOperation :: (IpfsOperation a) => IpfsConnectionInfo -> a -> IO (Response (IpfsResponse a))
@@ -199,6 +200,6 @@ performIpfsOperation conn op =
                     (PostText body) -> do
                       resp <- post url body
                       return $ responseToText resp
-      case response ^. responseStatus of
-        ok200 -> return $ Right $ response ^. responseBody
-        otherwise -> return $ Left $ responseToError response
+      if response ^. responseStatus == ok200
+        then return $ Right $ response ^. responseBody
+        else return $ Left $ responseToError response

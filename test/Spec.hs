@@ -20,4 +20,6 @@ main = hspec $ beforeAll startIpfsDaemon . afterAll terminateProcess $ do
     describe "thing" $ do
       it "is a test" $ do
         body <- performIpfsOperation defaultConnectionInfo OpBootstrapList
-        True `shouldBe` True
+        case body of
+          Left err -> expectationFailure err
+          Right peers -> peers `shouldSatisfy` (> 0) . length . bootstrapPeers

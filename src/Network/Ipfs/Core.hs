@@ -89,7 +89,7 @@ data IpfsQueryItem = IpfsQueryItem QueryItem -- ^ A query parameter that has bee
 -- construction of queries should such use be necessary in the future.
 newtype IpfsQuery = IpfsQuery [IpfsQueryItem]
   deriving (Show)
- 
+
 -- |Types that can be converted to an 'IpfsQueryItem'.
 -- This typeclass allows us to write operation parameters as simple record types.
 -- The type can then be almost automatically collapsed into queries.
@@ -137,7 +137,7 @@ updateQuery arg item (IpfsQuery query) = IpfsQuery $ (toQueryItem arg item) : qu
 -- This is only meant to be used after the entirety of a query has been constructed.
 renderQuery :: IpfsQuery -> Builder
 renderQuery (IpfsQuery items) = renderQueryBuilder True $ foldr toQuery [] items
-  where 
+  where
     toQuery x acc = case x of
       Default -> acc
       (IpfsQueryItem item) -> item : acc
@@ -172,27 +172,33 @@ responseToText resp =
       Just (Error err) -> error "failed to parse response as text"
       otherwise -> error "failed to convert bytestring to text; encoding issue?"
 
+responseToError :: (Show a) => Response a -> String
+responseToError = show
+
 -- |Performs an IPFS API operation.
-performIpfsOperation :: (IpfsOperation a) => IpfsConnectionInfo -> a -> IO (Response (IpfsResponse a))
+--performIpfsOperation :: (IpfsOperation a) => IpfsConnectionInfo -> a -> IO (Response (IpfsResponse a))
+performIpfsOperation :: (IpfsOperation a, Show (IpfsResponse a)) => IpfsConnectionInfo -> a -> IO (Either String (IpfsResponse a))
 performIpfsOperation conn op =
   let (IpfsHttpInfo method path query) = toHttpInfo op
       root = apiRoot conn
-      endp = renderEndpoints path 
+      endp = renderEndpoints path
       qp = Network.Ipfs.Core.renderQuery query
       url = unpack $ toLazyByteString (root `append` endp `append` qp)
   in
-    case method of
-      Get -> do
-        r <- asJSON =<< get url 
-        return r
-      GetText -> do
-        resp <- get url
-        return $ responseToText resp
-      (Post body) -> do
-        r <- asJSON =<< post url body
-        return r
-      (PostText body) -> do
-        resp <- post url body
-        return $ responseToText resp
-
-
+    do
+      response <- case method of
+                    Get -> do
+                      r <- asJSON =<< get url
+                      return r
+                    GetText -> do
+                      resp <- get url
+                      return $ responseToText resp
+                    (Post body) -> do
+                      r <- asJSON =<< post url body
+                      return r
+                    (PostText body) -> do
+                      resp <- post url body
+                      return $ responseToText resp
+      case response ^. responseStatus of
+        ok200 -> return $ Right $ response ^. responseBody
+        otherwise -> return $ Left $ responseToError response

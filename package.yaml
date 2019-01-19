@@ -55,9 +55,7 @@ tests:
   hs-ipfs-api-test:
     main:                Spec.hs
     source-dirs:         test
-    ghc-options:
-      - -threaded
-      - -rtsopts
-      - -with-rtsopts=-N
     dependencies:
       - hs-ipfs-api
+      - hspec
+      - process

@@ -177,7 +177,6 @@ responseToError :: (Show a) => Response a -> String
 responseToError = show -- TODO: should do something better here
 
 -- |Performs an IPFS API operation.
---performIpfsOperation :: (IpfsOperation a) => IpfsConnectionInfo -> a -> IO (Response (IpfsResponse a))
 performIpfsOperation :: (IpfsOperation a, Show (IpfsResponse a)) => IpfsConnectionInfo -> a -> IO (Either String (IpfsResponse a))
 performIpfsOperation conn op =
   let (IpfsHttpInfo method path query) = toHttpInfo op
@@ -186,7 +185,7 @@ performIpfsOperation conn op =
       qp = Network.Ipfs.Core.renderQuery query
       url = unpack $ toLazyByteString (root `append` endp `append` qp)
   in
-    do
+    do -- TODO: handle exceptions?
       response <- case method of
                     Get -> do
                       r <- asJSON =<< get url

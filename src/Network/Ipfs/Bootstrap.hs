@@ -5,7 +5,7 @@
 -- One popular use for a custom bootstrap list is to create a personal IPFS network.
 module Network.Ipfs.Bootstrap
   (
-    BootstrapPeers(bootstrapPeers)
+    BootstrapPeers(..)
   , OpAddDefaultPeers(..)
   , OpBootstrapList(..)
   , OpRemovePeers(..)

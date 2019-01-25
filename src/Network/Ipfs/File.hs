@@ -194,3 +194,36 @@ instance IpfsOperation OpGetData where
                        , toQueryItem "archive" getArchive
                        , toQueryItem "compression-level" getCompressionLevel
                        , toQueryItem "compress" shouldCompress]
+
+-- |https://docs.ipfs.io/reference/api/http/#api-v0-ls
+data OpListFiles = OpListFiles B.ByteString
+  deriving (Show)
+
+data IpfsFileLink = IpfsFileLink
+  { linkName :: T.Text
+  , linkHash :: T.Text
+  , linkSize :: T.Text
+  , linkType :: Int
+  } deriving (Show, Generic)
+
+data IpfsFile = IpfsFile
+  { ipfsFileHash :: T.Text
+  , ipfsFileLinks :: IpfsFileLink
+  } deriving (Show, Generic)
+
+data IpfsFileList = IpfsFileList
+  { filelistObjects :: [IpfsFile]
+  } deriving (Show, Generic)
+
+instance FromJSON IpfsFileLink where
+  parseJSON = genericParseJSON $ aesonPrefix pascalCase
+
+instance FromJSON IpfsFile where
+  parseJSON = genericParseJSON $ aesonPrefix pascalCase
+
+instance FromJSON IpfsFileList where
+  parseJSON = genericParseJSON $ aesonPrefix pascalCase
+
+instance IpfsOperation OpListFiles where
+  type IpfsResponse OpListFiles = IpfsFileList
+  toHttpInfo (OpListFiles dir) = IpfsHttpInfo Get ["ls"] $ singletonQuery "arg" dir

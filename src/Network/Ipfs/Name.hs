@@ -3,7 +3,14 @@
 -- |Operations about the IPNS system.
 module Network.Ipfs.Name
   (
+    -- * Common types
     IpnsEntry(..)
+    -- * Publishing new names
+  , IpnsPublishOptions(..)
+  , OpIpnsPublish(..)
+    -- * Cancelling existing subscriptions
+  , PubsubCancelResponse(..)
+  , OpPubsubCancel(..)
   ) where
 
 import qualified Data.ByteString as B
@@ -39,3 +46,20 @@ instance IpfsOperation OpIpnsPublish where
                            , toQueryItem "lifetime" publishLifetime
                            , toQueryItem "key" publishKey
                            ]
+
+-- |The response type for te 'OpPubsubCancel' operation.
+data PubsubCancelResponse = PubsubCancelResponse
+  { pubsubCanceled :: Bool
+  } deriving (Show, Generic)
+
+instance FromJSON PubsubCancelResponse where
+  parseJSON = genericParseJSON $ aesonPrefix pascalCase
+
+-- |https://docs.ipfs.io/reference/api/http/#api-v0-name-pubsub-cancel
+data OpPubsubCancel = OpPubsubCancel B.ByteString
+  deriving (Show)
+
+instance IpfsOperation OpPubsubCancel where
+  type IpfsResponse OpPubsubCancel = PubsubCancelResponse
+  toHttpInfo (OpPubsubCancel name) = IpfsHttpInfo Get ["name", "pubsub", "cancel"] query
+    where query = singletonQuery "arg" name

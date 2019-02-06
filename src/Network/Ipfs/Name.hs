@@ -63,3 +63,19 @@ instance IpfsOperation OpPubsubCancel where
   type IpfsResponse OpPubsubCancel = PubsubCancelResponse
   toHttpInfo (OpPubsubCancel name) = IpfsHttpInfo Get ["name", "pubsub", "cancel"] query
     where query = singletonQuery "arg" name
+
+-- |The response type for the 'OpPubsubState' operation.'
+data PubsubState = PubsubState
+  { pubsubEnabled :: Bool
+  } deriving (Show, Generic)
+
+instance FromJSON PubsubState where
+  parseJSON = genericParseJSON $ aesonPrefix pascalCase
+
+-- |https://docs.ipfs.io/reference/api/http/#api-v0-name-pubsub-state
+data OpPubsubState = OpPubsubState
+  deriving (Show)
+
+instance IpfsOperation OpPubsubState where
+  type IpfsResponse OpPubsubState = PubsubState
+  toHttpInfo _ = IpfsHttpInfo Get ["name", "pubsub", "state"] emptyQuery

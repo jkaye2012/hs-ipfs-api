@@ -11,6 +11,12 @@ module Network.Ipfs.Name
     -- * Cancelling existing subscriptions
   , PubsubCancelResponse(..)
   , OpPubsubCancel(..)
+    -- * Reading pubsub state
+  , PubsubState(..)
+  , OpPubsubState(..)
+    -- * Inspecting pubsub subscriptions
+  , PubsubSubscriptions(..)
+  , OpPubsubSubscriptions(..)
   ) where
 
 import qualified Data.ByteString as B
@@ -79,3 +85,19 @@ data OpPubsubState = OpPubsubState
 instance IpfsOperation OpPubsubState where
   type IpfsResponse OpPubsubState = PubsubState
   toHttpInfo _ = IpfsHttpInfo Get ["name", "pubsub", "state"] emptyQuery
+
+-- |The response type for the 'OpPubsubSubscriptions' operation.
+data PubsubSubscriptions = PubsubSubscriptions
+  { subscriptionStrings :: [T.Text]
+  } deriving (Show, Generic)
+
+instance FromJSON PubsubSubscriptions where
+  parseJSON = genericParseJSON $ aesonPrefix pascalCase
+
+-- |https://docs.ipfs.io/reference/api/http/#api-v0-name-pubsub-subs
+data OpPubsubSubscriptions = OpPubsubSubscriptions
+  deriving (Show)
+
+instance IpfsOperation OpPubsubSubscriptions where
+  type IpfsResponse OpPubsubSubscriptions = PubsubSubscriptions
+  toHttpInfo _ = IpfsHttpInfo Get ["name", "pubsub", "subs"] emptyQuery

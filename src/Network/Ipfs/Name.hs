@@ -101,3 +101,36 @@ data OpPubsubSubscriptions = OpPubsubSubscriptions
 instance IpfsOperation OpPubsubSubscriptions where
   type IpfsResponse OpPubsubSubscriptions = PubsubSubscriptions
   toHttpInfo _ = IpfsHttpInfo Get ["name", "pubsub", "subs"] emptyQuery
+
+-- |Options for the 'OpPubsubResolve' operation.
+data NameResolutionOptions = NameResolutionOptions
+  { nameresName :: Maybe B.ByteString
+  , nameresRecursive :: Maybe Bool
+  , nameresNocache :: Maybe Bool
+  , nameresRecordCount :: Maybe Word
+  , namesresTimeout :: Maybe B.ByteString
+  } deriving (Show, Generic)
+
+instance Default NameResolutionOptions
+
+-- |The response type for the 'OpPubsubResolve' operation.
+data NameResolution = NameResolution
+  { resolvedPaths :: [T.Text]
+  } deriving (Show, Generic)
+
+instance FromJSON NameResolution where
+  parseJSON = genericParseJSON $ aesonPrefix pascalCase
+
+-- |https://docs.ipfs.io/reference/api/http/#api-v0-name-resolve
+data OpPubsubResolve = OpPubsubResolve NameResolutionOptions
+  deriving (Show)
+
+instance IpfsOperation OpPubsubResolve where
+  type IpfsResponse OpPubsubResolve = NameResolution
+  toHttpInfo (OpPubsubResolve NameResolutionOptions{..}) = IpfsHttpInfo Get ["name", "resolve"] query
+    where query = newQuery [ toQueryItem "arg" nameresName
+                           , toQueryItem "recursive" nameresRecursive
+                           , toQueryItem "nocache" nameresNocache
+                           , toQueryItem "dht-record-count" nameresRecordCount
+                           , toQueryItem "dht-timeout" namesresTimeout
+                           ]

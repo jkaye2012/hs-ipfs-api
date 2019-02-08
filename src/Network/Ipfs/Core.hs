@@ -106,6 +106,9 @@ instance ToQueryItem Bool where
 instance ToQueryItem B.ByteString where
   toQueryItem arg val = IpfsQueryItem (arg, Just val)
 
+instance ToQueryItem Word where
+  toQueryItem arg val = IpfsQueryItem (arg, Just (BL.toStrict . pack $ show val))
+
 instance ToQueryItem Int where
   toQueryItem arg val = IpfsQueryItem (arg, Just (BL.toStrict . pack $ show val))
 

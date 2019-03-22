@@ -11,6 +11,8 @@ import Data.Default(Default)
 
 import Network.Ipfs.Core
 
+-- * Shared response types
+
 data PeerListener = PeerListener
   { listenerProtocol :: T.Text
   , listenerAddress :: T.Text
@@ -44,3 +46,29 @@ data PeerStreams = PeerStreams
 
 instance FromJSON PeerStreams where
   parseJSON = genericParseJSON $ aesonPrefix pascalCase
+
+-- * Operation types
+
+-- ** https://docs.ipfs.io/reference/api/http/#api-v0-p2p-listener-close
+
+data CloseListenerOptions = CloseListenerOptions
+  { closeListenerProtocol :: Maybe B.ByteString
+  , closeListenerAll :: Maybe Bool
+  } deriving (Show, Generic)
+
+instance Default CloseListenerOptions
+
+data OpCloseListener = OpCloseListener CloseListenerOptions
+  deriving (Show)
+
+-- ** https://docs.ipfs.io/reference/api/http/#api-v0-p2p-listener-ls
+
+data OpListListeners = OpListListeners
+  deriving (Show)
+
+-- ** https://docs.ipfs.io/reference/api/http/#api-v0-p2p-listener-open
+
+data OpOpenListener = OpOpenListener B.ByteString B.ByteString
+  deriving (Show)
+
+-- ** Internal instance implementations
